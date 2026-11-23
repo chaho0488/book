@@ -11,7 +11,7 @@ const KINDS = {
 const ROLES = ['사회자', '손재주', '미적감각'];
 // 파일을 받는 종류와 허용 확장자
 const FILE_RULE = {
-  bognar: { ext: /\.(pptx?|pdf)$/i, msg: 'PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.', need: 'PPT 초안 파일을 올려 주세요.' },
+  bognar: { ext: /\.(jpe?g|png|pdf|pptx?)$/i, msg: '그림(.jpg, .png), PDF, PPT 파일만 올릴 수 있습니다.', need: '광고 포스터 파일을 올려 주세요.' },
   gobaek: { ext: /\.(hwpx?|txt)$/i, msg: '한글 파일(.hwp, .hwpx) 또는 텍스트 파일(.txt)만 올릴 수 있습니다.', need: '공연 대본을 붙여넣거나 한글 파일로 올려 주세요.' },
 };
 // 보그나르 설명과 고백은 줄거리는 간단히만 받는다

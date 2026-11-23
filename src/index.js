@@ -12,7 +12,7 @@ const ROLES = ['사회자', '손재주', '미적감각'];
 // 파일을 받는 종류와 허용 확장자
 const FILE_RULE = {
   bognar: { ext: /\.(pptx?|pdf)$/i, msg: 'PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.' },
-  gobaek: { ext: /\.hwpx?$/i, msg: '한글 파일(.hwp, .hwpx)만 올릴 수 있습니다.' },
+  gobaek: { ext: /\.(hwpx?|txt)$/i, msg: '한글 파일(.hwp, .hwpx) 또는 텍스트 파일(.txt)만 올릴 수 있습니다.' },
 };
 // 보그나르 설명과 고백은 줄거리는 간단히만 받는다
 const SHORT_BODY = 300;
@@ -82,7 +82,7 @@ async function submit(req, env) {
   if (kind !== 'helper' && !body) return json({ error: '내용을 적어 주세요.' }, 400);
   // 잘라서 저장하면 학생 글이 말없이 사라지므로 길면 돌려보낸다
   if (rule && body.length > SHORT_BODY) return json({ error: `설명은 ${SHORT_BODY}자 이내로 간단히 적어 주세요.` }, 400);
-  if (kind === 'gobaek' && !fileName) return json({ error: '대본 또는 각색안 한글 파일을 올려 주세요.' }, 400);
+  if (kind === 'gobaek' && !fileName) return json({ error: '대본 또는 각색안 파일(한글 또는 텍스트)을 올려 주세요.' }, 400);
 
   const token = crypto.randomUUID();
   const row = await env.DB.prepare(

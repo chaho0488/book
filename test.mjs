@@ -39,6 +39,7 @@ assert.equal((await post({ kind: 'gobaek', student_no: '1203', name: '홍', body
 assert.equal((await post({ kind: 'gobaek', student_no: '1203', name: '홍', file_name: 'a.hwp', file_size: 10 })).status, 400);
 assert.equal((await post({ kind: 'gobaek', student_no: '1203', name: '홍', body: '줄거리', file_name: 'a.pptx', file_size: 10 })).status, 400);
 assert.equal((await post({ kind: 'gobaek', student_no: '1203', name: '홍', body: '줄거리', file_name: '대본.hwpx', file_size: 10 })).status, 200);
+assert.equal((await post({ kind: 'gobaek', student_no: '1203', name: '홍', body: '줄거리', file_name: '대본.txt', file_size: 10 })).status, 200);
 // 파일을 받지 않는 종류는 파일 정보를 보내도 무시한다
 assert.equal((await (await post({ kind: 'gray', student_no: '1203', name: '홍', body: '글', file_name: 'a.hwp', file_size: 10 })).json()).chunks, 0);
 

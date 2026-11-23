@@ -63,7 +63,7 @@ textarea{min-height:160px;resize:vertical}
 <p class="who"><b id="who"></b> <button type="button" class="back" id="logout">나가기</button></p>
 <p id="saved" class="msg" role="status" aria-live="polite"></p>
 <div id="menu" class="menu">
-<button type="button" data-kind="gray"><b><span class="tag g">작품 1</span>회색 인간<i class="state"></i></b><span>‘만약 내가 ~라면’ 5줄 내외 글 제출</span></button>
+<button type="button" data-kind="gray"><b><span class="tag g">작품 1</span>회색 인간<i class="state"></i></b><span>주제 하나를 골라 5줄 내외 글 제출</span></button>
 <button type="button" data-kind="bognar"><b><span class="tag b">작품 2</span>보그나르 주식회사<i class="state"></i></b><span>미래 제품 기획 · 간단한 설명과 PPT 초안(5장 이내) 제출</span></button>
 <button type="button" data-kind="gobaek"><b><span class="tag p">작품 3</span>고백은 이미 본 장면<i class="state"></i></b><span>연극 한 장면 대본 또는 장면 각색안을 한글·텍스트 파일로 제출</span></button>
 <button type="button" data-kind="helper"><b>재능기부 도우미 신청<i class="state"></i></b><span>사회자 · 손재주 · 미적감각 (상점 부여 예정)</span></button>
@@ -89,7 +89,7 @@ textarea{min-height:160px;resize:vertical}
 <script>
 // 종류별 화면 설정: 제목, 안내, 내용 칸 이름, 보여 줄 칸
 const KINDS = {
-  gray: { title: '회색 인간', guide: '작품을 읽고 ‘만약 내가 ~라면’의 형식으로 자신의 생각을 5줄 내외로 적어 보세요. 제출 작품은 행사 당일 전시됩니다.', body: '나의 글', show: ['body'] },
+  gray: { title: '회색 인간', guide: '아래 주제 중 하나를 골라 5줄 내외로 적어 보세요. ① 나라면: 지하 세계에 끌려간 나는 노래, 그림, 글 중 무엇으로 버텼을까? ② 왜일까: 굶주린 사람들은 왜 노래하는 사람에게 빵을 나눠 주었을까? ③ 나의 회색: 나를 회색으로 만드는 것과 다시 색을 찾아 주는 것은? ④ 그 뒤 이야기: 소설의 마지막 장면 다음을 이어 써 보기. 제출 작품은 행사 당일 전시됩니다.', body: '나의 글 (고른 주제 번호를 맨 앞에 적어 주세요)', show: ['body'] },
   bognar: { title: '보그나르 주식회사', guide: '소설 속 기술을 참고해 새로운 미래 제품을 기획해 보세요. 제품 설명을 간단히 적고, PPT 초안(5장 이내)이 있으면 함께 올려 주세요. 우수 팀은 행사 당일 무대에서 발표합니다.', body: '제품 설명 (간단하게, 300자 이내)', short: true, show: ['team', 'body', 'file'],
     file: { label: 'PPT 파일', hint: '5장 이내 · .ppt .pptx .pdf · 10MB 이하', accept: '.ppt,.pptx,.pdf', ext: /\.(pptx?|pdf)$/i, msg: 'PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.' } },
   gobaek: { title: '고백은 이미 본 장면', guide: '책 속 이야기를 바탕으로 짧은 연극 한 장면 대본 또는 장면 각색안을 한글 파일 또는 텍스트 파일로 올려 주세요. 아래 칸에는 줄거리만 간단히 적습니다. 우수 팀은 행사 당일 무대에서 공연합니다.', body: '줄거리 (간단하게, 300자 이내)', short: true, show: ['team', 'body', 'file'],

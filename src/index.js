@@ -9,7 +9,13 @@ const KINDS = {
   question: '작가님께 질문',
 };
 const ROLES = ['사회자', '손재주', '미적감각'];
-const FILE_EXT = /\.(pptx?|pdf)$/i;
+// 파일을 받는 종류와 허용 확장자
+const FILE_RULE = {
+  bognar: { ext: /\.(pptx?|pdf)$/i, msg: 'PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.' },
+  gobaek: { ext: /\.hwpx?$/i, msg: '한글 파일(.hwp, .hwpx)만 올릴 수 있습니다.' },
+};
+// 보그나르 설명과 고백은 줄거리는 간단히만 받는다
+const SHORT_BODY = 300;
 const MAX_FILE = 10 * 1024 * 1024;
 // 최소구현: R2가 꺼져 있어 파일을 D1에 조각으로 저장한다. 조각 크기는 public/index.html과 같아야 한다.
 const CHUNK_BYTES = 720000;
@@ -63,19 +69,20 @@ async function submit(req, env) {
   if (!name) return json({ error: '이름을 적어 주세요.' }, 400);
   if (kind === 'helper' && !ROLES.includes(role)) return json({ error: '도우미 분야를 골라 주세요.' }, 400);
 
-  // 파일은 보그나르만 받는다
+  const rule = FILE_RULE[kind];
   let fileName = '', fileSize = 0, fileChunks = 0;
-  if (kind === 'bognar' && d.file_name) {
+  if (rule && d.file_name) {
     fileName = clean(d.file_name, 100);
     fileSize = Number(d.file_size);
-    if (!FILE_EXT.test(fileName)) return json({ error: 'PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.' }, 400);
+    if (!rule.ext.test(fileName)) return json({ error: rule.msg }, 400);
     if (!Number.isInteger(fileSize) || fileSize < 1 || fileSize > MAX_FILE)
       return json({ error: '파일은 10MB 이하만 올릴 수 있습니다.' }, 400);
     fileChunks = Math.ceil(fileSize / CHUNK_BYTES);
   }
-  const needsBody = kind === 'gray' || kind === 'gobaek' || kind === 'question';
-  if (needsBody && !body) return json({ error: '내용을 적어 주세요.' }, 400);
-  if (kind === 'bognar' && !body && !fileName) return json({ error: '설명을 적거나 PPT 파일을 올려 주세요.' }, 400);
+  if (kind !== 'helper' && !body) return json({ error: '내용을 적어 주세요.' }, 400);
+  // 잘라서 저장하면 학생 글이 말없이 사라지므로 길면 돌려보낸다
+  if (rule && body.length > SHORT_BODY) return json({ error: `설명은 ${SHORT_BODY}자 이내로 간단히 적어 주세요.` }, 400);
+  if (kind === 'gobaek' && !fileName) return json({ error: '대본 또는 각색안 한글 파일을 올려 주세요.' }, 400);
 
   const token = crypto.randomUUID();
   const row = await env.DB.prepare(

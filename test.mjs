@@ -28,12 +28,23 @@ assert.equal((await post({ kind: 'gray', student_no: '1203', name: '홍', body: 
 assert.equal((await post({ kind: 'nope', student_no: '1203', name: '홍', body: 'x' })).status, 400);
 assert.equal((await post({ kind: 'helper', student_no: '1203', name: '홍', role: '가수' })).status, 400);
 assert.equal((await post({ kind: 'bognar', student_no: '1203', name: '홍' })).status, 400);
-assert.equal((await post({ kind: 'bognar', student_no: '1203', name: '홍', file_name: 'a.exe', file_size: 10 })).status, 400);
-assert.equal((await post({ kind: 'bognar', student_no: '1203', name: '홍', file_name: 'a.pptx', file_size: 11 * 1024 * 1024 })).status, 400);
+assert.equal((await post({ kind: 'bognar', student_no: '1203', name: '홍', body: '설명', file_name: 'a.exe', file_size: 10 })).status, 400);
+assert.equal((await post({ kind: 'bognar', student_no: '1203', name: '홍', body: '설명', file_name: 'a.pptx', file_size: 11 * 1024 * 1024 })).status, 400);
+// 보그나르: PPT를 올려도 설명은 꼭 있어야 하고, 300자를 넘으면 거절. 설명만 내는 것은 허용
+assert.equal((await post({ kind: 'bognar', student_no: '1203', name: '홍', file_name: 'a.pptx', file_size: 10 })).status, 400);
+assert.equal((await post({ kind: 'bognar', student_no: '1203', name: '홍', body: '가'.repeat(301) })).status, 400);
+assert.equal((await post({ kind: 'bognar', student_no: '1203', name: '홍', body: '가'.repeat(300) })).status, 200);
+// 고백은: 줄거리와 한글 파일이 둘 다 있어야 하고, 한글 파일이 아니면 거절
+assert.equal((await post({ kind: 'gobaek', student_no: '1203', name: '홍', body: '줄거리' })).status, 400);
+assert.equal((await post({ kind: 'gobaek', student_no: '1203', name: '홍', file_name: 'a.hwp', file_size: 10 })).status, 400);
+assert.equal((await post({ kind: 'gobaek', student_no: '1203', name: '홍', body: '줄거리', file_name: 'a.pptx', file_size: 10 })).status, 400);
+assert.equal((await post({ kind: 'gobaek', student_no: '1203', name: '홍', body: '줄거리', file_name: '대본.hwpx', file_size: 10 })).status, 200);
+// 파일을 받지 않는 종류는 파일 정보를 보내도 무시한다
+assert.equal((await (await post({ kind: 'gray', student_no: '1203', name: '홍', body: '글', file_name: 'a.hwp', file_size: 10 })).json()).chunks, 0);
 
 // 3. 파일 제출: 조각 2개짜리
 const bytes = Buffer.alloc(720000 + 5000, 7);
-r = await post({ kind: 'bognar', student_no: '2101', name: '김철수', team: '2102 이영희', file_name: '기획.pptx', file_size: bytes.length });
+r = await post({ kind: 'bognar', student_no: '2101', name: '김철수', team: '2102 이영희', body: '설명', file_name: '기획.pptx', file_size: bytes.length });
 const sub = await r.json();
 assert.equal(sub.chunks, 2);
 const chunk = (seq, token, body) => call(`/api/chunk?id=${sub.id}&seq=${seq}&token=${token}`, { method: 'POST', body });

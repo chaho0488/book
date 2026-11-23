@@ -1,0 +1,29 @@
+-- 제출물 한 건이 한 줄
+CREATE TABLE IF NOT EXISTS submissions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL,
+  student_no TEXT NOT NULL,
+  name TEXT NOT NULL,
+  team TEXT NOT NULL DEFAULT '',
+  role TEXT NOT NULL DEFAULT '',
+  body TEXT NOT NULL DEFAULT '',
+  file_name TEXT NOT NULL DEFAULT '',
+  file_size INTEGER NOT NULL DEFAULT 0,
+  file_chunks INTEGER NOT NULL DEFAULT 0,
+  token TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+-- PPT 파일은 D1 한 칸 2MB 제한 때문에 base64 조각으로 나눠 저장
+CREATE TABLE IF NOT EXISTS file_chunks (
+  sub_id INTEGER NOT NULL,
+  seq INTEGER NOT NULL,
+  data TEXT NOT NULL,
+  PRIMARY KEY (sub_id, seq)
+);
+
+-- 교사용 주소의 열쇠는 코드가 아니라 여기에 둠 (저장소가 공개여도 드러나지 않게)
+CREATE TABLE IF NOT EXISTS config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);

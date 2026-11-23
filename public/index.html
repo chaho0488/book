@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>김동식 작가와의 만남 · 참여하기</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#FFD93B;color:#111;font-family:system-ui,-apple-system,"Noto Sans KR","Malgun Gothic",sans-serif;line-height:1.5;word-break:keep-all}
+main{max-width:560px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:26px;line-height:1.25;margin:8px 0 6px;font-weight:900}
+.when{display:inline-block;background:#111;color:#fff;padding:4px 12px;border-radius:10px;font-weight:900}
+.due{margin:10px 0 18px;font-weight:700}
+.menu{display:grid;gap:12px}
+.menu button,.card{background:#fff;border:3px solid #111;box-shadow:5px 5px 0 #111}
+.menu button{display:block;width:100%;text-align:left;padding:14px 16px;font:inherit;color:#111;cursor:pointer;min-height:64px}
+.menu b{display:block;font-size:19px;font-weight:900}
+.menu span{font-size:14px}
+.tag{display:inline-block;padding:0 8px;border:2px solid #111;border-radius:999px;font-size:12px;font-weight:900;margin-right:6px}
+.g{background:#B9BCC0}.b{background:#3CCB6B}.p{background:#FF8CCB}
+.card{padding:16px}
+h2{font-size:22px;margin:0 0 4px;font-weight:900}
+.guide{margin:0 0 12px;font-size:15px}
+label{display:block;font-weight:700;margin-top:12px;font-size:15px}
+input,textarea,select{width:100%;margin-top:4px;padding:10px;font:inherit;font-size:16px;border:2px solid #111;border-radius:6px;background:#fff;color:#111}
+textarea{min-height:160px;resize:vertical}
+.hint{font-size:13px;font-weight:400;display:block}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.send{margin-top:18px;width:100%;padding:14px;font:inherit;font-size:18px;font-weight:900;background:#111;color:#fff;border:0;border-radius:8px;cursor:pointer;min-height:52px}
+.send:disabled{background:#767676}
+.back{margin:0 0 12px;padding:8px 12px;font:inherit;font-weight:700;background:#fff;color:#111;border:2px solid #111;border-radius:6px;cursor:pointer;min-height:44px}
+#msg{margin-top:12px;font-weight:700}
+#msg.err{color:#B00020}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>소설가 김동식 작가님을<br>울산 에너지고에서 만납니다.</h1>
+<div class="when">12/3(목) 8, 9교시</div>
+<p class="due">제출기한 11/30(월) 점심시간까지</p>
+
+<div id="menu" class="menu">
+<button type="button" data-kind="gray"><b><span class="tag g">작품 1</span>회색 인간</b><span>‘만약 내가 ~라면’ 5줄 내외 글 제출</span></button>
+<button type="button" data-kind="bognar"><b><span class="tag b">작품 2</span>보그나르 주식회사</b><span>미래 제품 기획 · PPT 초안(5장 이내) 또는 모형 설명 제출</span></button>
+<button type="button" data-kind="gobaek"><b><span class="tag p">작품 3</span>고백은 이미 본 장면</b><span>연극 한 장면 대본 또는 장면 각색안 제출</span></button>
+<button type="button" data-kind="helper"><b>재능기부 도우미 신청</b><span>사회자 · 손재주 · 미적감각 (상점 부여 예정)</span></button>
+<button type="button" data-kind="question"><b>작가님께 궁금한 점</b><span>작가님께 묻고 싶은 것을 보내 주세요</span></button>
+</div>
+
+<section id="formBox" class="card" hidden>
+<button type="button" class="back" id="back">← 처음으로</button>
+<h2 id="title"></h2>
+<p class="guide" id="guide"></p>
+<form id="form" novalidate>
+<div class="row">
+<label>학번<input name="student_no" inputmode="numeric" autocomplete="off" required maxlength="6"></label>
+<label>이름<input name="name" autocomplete="off" required maxlength="20"></label>
+</div>
+<label id="teamBox">팀원 <span class="hint">함께한 친구의 학번과 이름 (혼자면 비워 두세요)</span><input name="team" maxlength="200" placeholder="예) 1203 홍길동, 1215 김철수"></label>
+<label id="roleBox">분야<select name="role"><option value="">고르세요</option><option>사회자</option><option>손재주</option><option>미적감각</option></select></label>
+<label id="bodyBox"><span id="bodyLabel">내용</span><textarea name="body" maxlength="6000"></textarea></label>
+<label id="fileBox">PPT 파일 <span class="hint">5장 이내 · .ppt .pptx .pdf · 10MB 이하</span><input name="file" type="file" accept=".ppt,.pptx,.pdf"></label>
+<button class="send" id="send">제출하기</button>
+<p id="msg" role="status" aria-live="polite"></p>
+</form>
+</section>
+
+<section id="doneBox" class="card" hidden>
+<h2>제출되었습니다!</h2>
+<p class="guide" id="doneText"></p>
+<button type="button" class="back" id="again">처음으로</button>
+</section>
+</main>
+
+<script>
+// 종류별 화면 설정: 제목, 안내, 내용 칸 이름, 보여 줄 칸
+const KINDS = {
+  gray: { title: '회색 인간', guide: '작품을 읽고 ‘만약 내가 ~라면’의 형식으로 자신의 생각을 5줄 내외로 적어 보세요. 제출 작품은 행사 당일 전시됩니다.', body: '나의 글', show: ['body'] },
+  bognar: { title: '보그나르 주식회사', guide: '소설 속 기술을 참고해 새로운 미래 제품을 기획해 보세요. PPT 초안(5장 이내)을 올리거나 모형 설명을 글로 적으면 됩니다. 우수 팀은 행사 당일 무대에서 발표합니다.', body: '제품 설명 (PPT를 올리면 비워도 됩니다)', show: ['team', 'body', 'file'] },
+  gobaek: { title: '고백은 이미 본 장면', guide: '책 속 이야기를 바탕으로 짧은 연극 한 장면 대본 또는 장면 각색안을 적어 보세요. 우수 팀은 행사 당일 무대에서 공연합니다.', body: '대본 또는 각색안', show: ['team', 'body'] },
+  helper: { title: '재능기부 도우미 신청', guide: '사회자: 재치 있는 언변으로 행사를 이끌어 갈 학생 / 손재주: 글씨를 바르게 쓰고 만들기를 잘하는 학생 / 미적감각: 디자인, 꾸미기 감각이 뛰어난 학생', body: '한 줄 소개 (선택)', show: ['role', 'body'] },
+  question: { title: '작가님께 궁금한 점', guide: '김동식 작가님께 궁금한 점을 보내 주세요.', body: '질문', show: ['body'] },
+};
+// 조각 크기는 src/index.js의 CHUNK_BYTES와 같아야 한다
+const CHUNK_BYTES = 720000, MAX_FILE = 10 * 1024 * 1024;
+const $ = (id) => document.getElementById(id);
+const form = $('form');
+let kind = '';
+
+function show(which) {
+  $('menu').hidden = which !== 'menu';
+  $('formBox').hidden = which !== 'form';
+  $('doneBox').hidden = which !== 'done';
+  window.scrollTo(0, 0);
+}
+
+$('menu').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-kind]');
+  if (!b) return;
+  kind = b.dataset.kind;
+  const k = KINDS[kind];
+  // 학번·이름은 남겨 두고 나머지만 비운다 (여러 건 낼 때 다시 안 적게)
+  form.team.value = form.role.value = form.body.value = form.file.value = '';
+  $('title').textContent = k.title;
+  $('guide').textContent = k.guide;
+  $('bodyLabel').textContent = k.body;
+  for (const f of ['team', 'role', 'body', 'file']) $(f + 'Box').hidden = !k.show.includes(f);
+  setMsg('');
+  show('form');
+});
+$('back').addEventListener('click', () => show('menu'));
+$('again').addEventListener('click', () => show('menu'));
+
+function setMsg(text, err) {
+  $('msg').textContent = text;
+  $('msg').className = err ? 'err' : '';
+}
+
+// 파일 조각을 base64 글자로 바꾼다
+const toBase64 = (blob) => new Promise((ok, fail) => {
+  const r = new FileReader();
+  r.onload = () => ok(r.result.slice(r.result.indexOf(',') + 1));
+  r.onerror = fail;
+  r.readAsDataURL(blob);
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const file = kind === 'bognar' ? form.file.files[0] : null;
+  const data = {
+    kind,
+    student_no: form.student_no.value.trim(),
+    name: form.name.value.trim(),
+    team: form.team.value.trim(),
+    role: form.role.value,
+    body: form.body.value.trim(),
+  };
+  // 서버에서도 똑같이 검사하지만, 보내기 전에 먼저 알려 준다
+  if (!/^\d{3,6}$/.test(data.student_no)) return setMsg('학번을 숫자로 적어 주세요.', true);
+  if (!data.name) return setMsg('이름을 적어 주세요.', true);
+  if (kind === 'helper' && !data.role) return setMsg('도우미 분야를 골라 주세요.', true);
+  if (['gray', 'gobaek', 'question'].includes(kind) && !data.body) return setMsg('내용을 적어 주세요.', true);
+  if (kind === 'bognar' && !data.body && !file) return setMsg('설명을 적거나 PPT 파일을 올려 주세요.', true);
+  if (file) {
+    if (!/\.(pptx?|pdf)$/i.test(file.name)) return setMsg('PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.', true);
+    if (file.size > MAX_FILE) return setMsg('파일은 10MB 이하만 올릴 수 있습니다.', true);
+    if (file.size < 1) return setMsg('빈 파일입니다. 파일을 다시 골라 주세요.', true);
+    data.file_name = file.name;
+    data.file_size = file.size;
+  }
+
+  $('send').disabled = true;
+  setMsg('제출하는 중…');
+  try {
+    const r = await fetch('/api/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.error);
+    for (let i = 0; i < res.chunks; i++) {
+      setMsg('파일 올리는 중 ' + (i + 1) + '/' + res.chunks + ' (창을 닫지 마세요)');
+      const part = await toBase64(file.slice(i * CHUNK_BYTES, (i + 1) * CHUNK_BYTES));
+      const c = await fetch('/api/chunk?id=' + res.id + '&seq=' + i + '&token=' + res.token, { method: 'POST', body: part });
+      if (!c.ok) throw new Error('파일을 올리다 끊겼습니다. 다시 제출해 주세요.');
+    }
+    $('doneText').textContent = data.student_no + ' ' + data.name + ' 학생의 ‘' + KINDS[kind].title + '’ 제출이 접수되었습니다. 고쳐서 다시 내고 싶으면 한 번 더 제출하면 됩니다.';
+    form.team.value = form.role.value = form.body.value = form.file.value = '';
+    show('done');
+  } catch (err) {
+    setMsg(err.message && !/fetch|JSON/i.test(err.message) ? err.message : '제출하지 못했습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.', true);
+  }
+  $('send').disabled = false;
+});
+</script>
+</body>
+</html>

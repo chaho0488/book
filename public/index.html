@@ -29,8 +29,13 @@ textarea{min-height:160px;resize:vertical}
 .send{margin-top:18px;width:100%;padding:14px;font:inherit;font-size:18px;font-weight:900;background:#111;color:#fff;border:0;border-radius:8px;cursor:pointer;min-height:52px}
 .send:disabled{background:#767676}
 .back{margin:0 0 12px;padding:8px 12px;font:inherit;font-weight:700;background:#fff;color:#111;border:2px solid #111;border-radius:6px;cursor:pointer;min-height:44px}
-#msg{margin-top:12px;font-weight:700}
-#msg.err{color:#B00020}
+.msg{margin:12px 0 0;font-weight:700}
+.msg.err{color:#B00020}
+.who{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 4px;font-size:17px}
+.who .back{margin:0}
+#saved{margin:0 0 12px}
+.state{float:right;font-style:normal;font-size:13px;padding:1px 8px;border-radius:999px;background:#111;color:#fff}
+.state:empty{display:none}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -40,36 +45,44 @@ textarea{min-height:160px;resize:vertical}
 <div class="when">12/3(목) 8, 9교시</div>
 <p class="due">제출기한 11/30(월) 점심시간까지</p>
 
-<div id="menu" class="menu">
-<button type="button" data-kind="gray"><b><span class="tag g">작품 1</span>회색 인간</b><span>‘만약 내가 ~라면’ 5줄 내외 글 제출</span></button>
-<button type="button" data-kind="bognar"><b><span class="tag b">작품 2</span>보그나르 주식회사</b><span>미래 제품 기획 · PPT 초안(5장 이내) 또는 모형 설명 제출</span></button>
-<button type="button" data-kind="gobaek"><b><span class="tag p">작품 3</span>고백은 이미 본 장면</b><span>연극 한 장면 대본 또는 장면 각색안을 한글·텍스트 파일로 제출</span></button>
-<button type="button" data-kind="helper"><b>재능기부 도우미 신청</b><span>사회자 · 손재주 · 미적감각 (상점 부여 예정)</span></button>
-<button type="button" data-kind="question"><b>작가님께 궁금한 점</b><span>작가님께 묻고 싶은 것을 보내 주세요</span></button>
-</div>
-
-<section id="formBox" class="card" hidden>
-<button type="button" class="back" id="back">← 처음으로</button>
-<h2 id="title"></h2>
-<p class="guide" id="guide"></p>
-<form id="form" novalidate>
+<section id="loginBox" class="card">
+<h2>시작하기</h2>
+<p class="guide">학번과 비밀번호를 넣으면 내가 낸 내용을 어느 기기에서든 다시 보고 고칠 수 있습니다. 처음이면 지금 넣는 비밀번호가 내 비밀번호가 됩니다.</p>
+<form id="loginForm" novalidate>
 <div class="row">
 <label>학번<input name="student_no" inputmode="numeric" autocomplete="off" required maxlength="6"></label>
-<label>이름<input name="name" autocomplete="off" required maxlength="20"></label>
+<label>이름<input name="name" autocomplete="off" maxlength="20"></label>
 </div>
-<label id="teamBox">팀원 <span class="hint">함께한 친구의 학번과 이름 (혼자면 비워 두세요)</span><input name="team" maxlength="200" placeholder="예) 1203 홍길동, 1215 김철수"></label>
-<label id="roleBox">분야<select name="role"><option value="">고르세요</option><option>사회자</option><option>손재주</option><option>미적감각</option></select></label>
-<label id="bodyBox"><span id="bodyLabel">내용</span><textarea name="body" maxlength="6000"></textarea></label>
-<label id="fileBox"><span id="fileLabel">파일</span> <span class="hint" id="fileHint"></span><input name="file" type="file"></label>
-<button class="send" id="send">제출하기</button>
-<p id="msg" role="status" aria-live="polite"></p>
+<label>비밀번호 <span class="hint">4자 이상 · 잊지 않게 적어 두세요</span><input name="password" type="password" autocomplete="off" required minlength="4" maxlength="20"></label>
+<button class="send" id="loginSend">시작하기</button>
+<p id="loginMsg" class="msg" role="status" aria-live="polite"></p>
 </form>
 </section>
 
-<section id="doneBox" class="card" hidden>
-<h2>제출되었습니다!</h2>
-<p class="guide" id="doneText"></p>
-<button type="button" class="back" id="again">처음으로</button>
+<section id="menuBox" hidden>
+<p class="who"><b id="who"></b> <button type="button" class="back" id="logout">나가기</button></p>
+<p id="saved" class="msg" role="status" aria-live="polite"></p>
+<div id="menu" class="menu">
+<button type="button" data-kind="gray"><b><span class="tag g">작품 1</span>회색 인간<i class="state"></i></b><span>‘만약 내가 ~라면’ 5줄 내외 글 제출</span></button>
+<button type="button" data-kind="bognar"><b><span class="tag b">작품 2</span>보그나르 주식회사<i class="state"></i></b><span>미래 제품 기획 · 간단한 설명과 PPT 초안(5장 이내) 제출</span></button>
+<button type="button" data-kind="gobaek"><b><span class="tag p">작품 3</span>고백은 이미 본 장면<i class="state"></i></b><span>연극 한 장면 대본 또는 장면 각색안을 한글·텍스트 파일로 제출</span></button>
+<button type="button" data-kind="helper"><b>재능기부 도우미 신청<i class="state"></i></b><span>사회자 · 손재주 · 미적감각 (상점 부여 예정)</span></button>
+<button type="button" data-kind="question"><b>작가님께 궁금한 점<i class="state"></i></b><span>작가님께 묻고 싶은 것을 보내 주세요</span></button>
+</div>
+</section>
+
+<section id="formBox" class="card" hidden>
+<button type="button" class="back" id="back">← 목록으로</button>
+<h2 id="title"></h2>
+<p class="guide" id="guide"></p>
+<form id="form" novalidate>
+<label id="teamBox">팀원 <span class="hint">함께한 친구의 학번과 이름 (혼자면 비워 두세요)</span><input name="team" maxlength="200" placeholder="예) 1203 홍길동, 1215 김철수"></label>
+<label id="roleBox">분야<select name="role"><option value="">고르세요</option><option>사회자</option><option>손재주</option><option>미적감각</option></select></label>
+<label id="bodyBox"><span id="bodyLabel">내용</span><textarea name="body" maxlength="6000"></textarea></label>
+<label id="fileBox"><span id="fileLabel">파일</span> <span class="hint" id="fileHint"></span><span class="hint" id="fileNow"></span><input name="file" type="file"></label>
+<button class="send" id="send">제출하기</button>
+<p id="msg" class="msg" role="status" aria-live="polite"></p>
+</form>
 </section>
 </main>
 
@@ -87,23 +100,73 @@ const KINDS = {
 // 조각 크기는 src/index.js의 CHUNK_BYTES와 같아야 한다
 const CHUNK_BYTES = 720000, MAX_FILE = 10 * 1024 * 1024;
 const $ = (id) => document.getElementById(id);
-const form = $('form');
-let kind = '';
+const form = $('form'), loginForm = $('loginForm');
+// 학번·비밀번호는 이 화면이 열려 있는 동안만 기억한다 (기기에 저장하지 않음)
+let me = null, items = {}, kind = '';
 
 function show(which) {
-  $('menu').hidden = which !== 'menu';
-  $('formBox').hidden = which !== 'form';
-  $('doneBox').hidden = which !== 'done';
+  for (const b of ['login', 'menu', 'form']) $(b + 'Box').hidden = b !== which;
   window.scrollTo(0, 0);
 }
+function setMsg(id, text, err) {
+  $(id).textContent = text;
+  $(id).className = 'msg' + (err ? ' err' : '');
+}
+async function api(path, data) {
+  const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
+  const res = await r.json();
+  if (!r.ok) throw new Error(res.error);
+  return res;
+}
+const friendly = (err) => (err.message && !/fetch|JSON|token/i.test(err.message) ? err.message : '인터넷 연결을 확인하고 다시 시도해 주세요.');
+
+// 내가 낸 것들을 다시 받아 메뉴에 '제출함' 표시를 붙인다
+async function refresh(name) {
+  const res = await api('/api/login', { ...me, name });
+  items = {};
+  for (const it of res.items) items[it.kind] = it;
+  $('who').textContent = me.student_no + ' ' + res.name;
+  for (const b of document.querySelectorAll('#menu button')) {
+    const it = items[b.dataset.kind];
+    b.querySelector('.state').textContent = !it ? '' : it.file_name && !it.file_ok ? '파일 다시 올리기' : '제출함 · 고치기';
+  }
+}
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  me = { student_no: loginForm.student_no.value.trim(), password: loginForm.password.value };
+  if (!/^\d{3,6}$/.test(me.student_no)) return setMsg('loginMsg', '학번을 숫자로 적어 주세요.', true);
+  if (me.password.length < 4) return setMsg('loginMsg', '비밀번호는 4자 이상으로 정해 주세요.', true);
+  $('loginSend').disabled = true;
+  setMsg('loginMsg', '확인하는 중…');
+  try {
+    await refresh(loginForm.name.value.trim());
+    loginForm.password.value = '';
+    setMsg('loginMsg', '');
+    setMsg('saved', '');
+    show('menu');
+  } catch (err) {
+    me = null;
+    setMsg('loginMsg', friendly(err), true);
+  }
+  $('loginSend').disabled = false;
+});
+$('logout').addEventListener('click', () => {
+  me = null;
+  items = {};
+  show('login');
+});
 
 $('menu').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-kind]');
   if (!b) return;
   kind = b.dataset.kind;
-  const k = KINDS[kind];
-  // 학번·이름은 남겨 두고 나머지만 비운다 (여러 건 낼 때 다시 안 적게)
-  form.team.value = form.role.value = form.body.value = form.file.value = '';
+  const k = KINDS[kind], it = items[kind];
+  // 전에 낸 내용이 있으면 그 내용에서 고치게 채워 둔다
+  form.team.value = it ? it.team : '';
+  form.role.value = it ? it.role : '';
+  form.body.value = it ? it.body : '';
+  form.file.value = '';
   $('title').textContent = k.title;
   $('guide').textContent = k.guide;
   $('bodyLabel').textContent = k.body;
@@ -112,18 +175,14 @@ $('menu').addEventListener('click', (e) => {
     $('fileLabel').textContent = k.file.label;
     $('fileHint').textContent = k.file.hint;
     form.file.accept = k.file.accept;
+    $('fileNow').textContent = !it || !it.file_name ? '' : it.file_ok ? '올린 파일: ' + it.file_name + ' (바꾸려면 새 파일을 고르세요)' : it.file_name + ' 파일이 올라가다 끊겼습니다. 다시 골라 주세요.';
   }
   for (const f of ['team', 'role', 'body', 'file']) $(f + 'Box').hidden = !k.show.includes(f);
-  setMsg('');
+  $('send').textContent = it ? '고친 내용 제출하기' : '제출하기';
+  setMsg('msg', '');
   show('form');
 });
 $('back').addEventListener('click', () => show('menu'));
-$('again').addEventListener('click', () => show('menu'));
-
-function setMsg(text, err) {
-  $('msg').textContent = text;
-  $('msg').className = err ? 'err' : '';
-}
 
 // 파일 조각을 base64 글자로 바꾼다
 const toBase64 = (blob) => new Promise((ok, fail) => {
@@ -135,47 +194,37 @@ const toBase64 = (blob) => new Promise((ok, fail) => {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const rule = KINDS[kind].file;
+  const rule = KINDS[kind].file, it = items[kind];
   const file = rule ? form.file.files[0] : null;
-  const data = {
-    kind,
-    student_no: form.student_no.value.trim(),
-    name: form.name.value.trim(),
-    team: form.team.value.trim(),
-    role: form.role.value,
-    body: form.body.value.trim(),
-  };
+  const data = { ...me, kind, team: form.team.value.trim(), role: form.role.value, body: form.body.value.trim() };
   // 서버에서도 똑같이 검사하지만, 보내기 전에 먼저 알려 준다
-  if (!/^\d{3,6}$/.test(data.student_no)) return setMsg('학번을 숫자로 적어 주세요.', true);
-  if (!data.name) return setMsg('이름을 적어 주세요.', true);
-  if (kind === 'helper' && !data.role) return setMsg('도우미 분야를 골라 주세요.', true);
-  if (kind !== 'helper' && !data.body) return setMsg('내용을 적어 주세요.', true);
-  if (rule && rule.required && !file) return setMsg('대본 또는 각색안 파일(한글 또는 텍스트)을 올려 주세요.', true);
+  if (kind === 'helper' && !data.role) return setMsg('msg', '도우미 분야를 골라 주세요.', true);
+  if (kind !== 'helper' && !data.body) return setMsg('msg', '내용을 적어 주세요.', true);
+  if (rule && rule.required && !file && !(it && it.file_ok)) return setMsg('msg', '대본 또는 각색안 파일(한글 또는 텍스트)을 올려 주세요.', true);
   if (file) {
-    if (!rule.ext.test(file.name)) return setMsg(rule.msg, true);
-    if (file.size > MAX_FILE) return setMsg('파일은 10MB 이하만 올릴 수 있습니다.', true);
-    if (file.size < 1) return setMsg('빈 파일입니다. 파일을 다시 골라 주세요.', true);
+    if (!rule.ext.test(file.name)) return setMsg('msg', rule.msg, true);
+    if (file.size > MAX_FILE) return setMsg('msg', '파일은 10MB 이하만 올릴 수 있습니다.', true);
+    if (file.size < 1) return setMsg('msg', '빈 파일입니다. 파일을 다시 골라 주세요.', true);
     data.file_name = file.name;
     data.file_size = file.size;
   }
 
   $('send').disabled = true;
-  setMsg('제출하는 중…');
+  setMsg('msg', '제출하는 중…');
   try {
-    const r = await fetch('/api/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
-    const res = await r.json();
-    if (!r.ok) throw new Error(res.error);
+    const res = await api('/api/submit', data);
     for (let i = 0; i < res.chunks; i++) {
-      setMsg('파일 올리는 중 ' + (i + 1) + '/' + res.chunks + ' (창을 닫지 마세요)');
+      setMsg('msg', '파일 올리는 중 ' + (i + 1) + '/' + res.chunks + ' (창을 닫지 마세요)');
       const part = await toBase64(file.slice(i * CHUNK_BYTES, (i + 1) * CHUNK_BYTES));
       const c = await fetch('/api/chunk?id=' + res.id + '&seq=' + i + '&token=' + res.token, { method: 'POST', body: part });
-      if (!c.ok) throw new Error('파일을 올리다 끊겼습니다. 다시 제출해 주세요.');
+      if (!c.ok) throw new Error('파일을 올리다 끊겼습니다. 파일을 다시 골라 제출해 주세요.');
     }
-    $('doneText').textContent = data.student_no + ' ' + data.name + ' 학생의 ‘' + KINDS[kind].title + '’ 제출이 접수되었습니다. 고쳐서 다시 내고 싶으면 한 번 더 제출하면 됩니다.';
-    form.team.value = form.role.value = form.body.value = form.file.value = '';
-    show('done');
+    await refresh();
+    setMsg('saved', '‘' + KINDS[kind].title + '’ 제출이 접수되었습니다. 고치려면 아래에서 다시 누르면 됩니다.');
+    show('menu');
   } catch (err) {
-    setMsg(err.message && !/fetch|JSON/i.test(err.message) ? err.message : '제출하지 못했습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.', true);
+    setMsg('msg', friendly(err), true);
+    refresh().catch(() => {});
   }
   $('send').disabled = false;
 });

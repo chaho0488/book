@@ -27,3 +27,15 @@ CREATE TABLE IF NOT EXISTS config (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- 학생 한 명이 한 줄. 비밀번호는 그대로 두지 않고 소금을 섞은 해시만 저장
+CREATE TABLE IF NOT EXISTS students (
+  student_no TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  salt TEXT NOT NULL,
+  hash TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+-- 같은 학생의 같은 종류는 한 줄만 (다시 내면 그 줄을 고침)
+CREATE UNIQUE INDEX IF NOT EXISTS one_per_kind ON submissions (student_no, kind);

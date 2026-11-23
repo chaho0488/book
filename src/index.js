@@ -33,6 +33,7 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     try {
+      if (req.method === 'POST' && url.pathname === '/api/login') return await login(req, env);
       if (req.method === 'POST' && url.pathname === '/api/submit') return await submit(req, env);
       if (req.method === 'POST' && url.pathname === '/api/chunk') return await saveChunk(req, url, env);
       const m = url.pathname.match(/^\/t\/([a-z0-9]+)(\/chunk)?$/);
@@ -49,29 +50,92 @@ export default {
   },
 };
 
-async function submit(req, env) {
-  if (Number(req.headers.get('content-length') || 0) > 50000) return json({ error: '내용이 너무 깁니다.' }, 413);
-  let d;
+async function hashPw(salt, pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + ':' + pw));
+  return [...new Uint8Array(buf)].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+async function readJson(req) {
+  if (Number(req.headers.get('content-length') || 0) > 50000) return null;
   try {
-    d = JSON.parse(await req.text());
+    return JSON.parse(await req.text());
   } catch {
-    return json({ error: '잘못된 요청입니다.' }, 400);
+    return null;
   }
-  const kind = clean(d.kind, 20);
+}
+
+// 학번 + 비밀번호 확인. 처음 보는 학번이면 (allowCreate일 때) 그 비밀번호로 새로 등록한다.
+// 최소구현: 틀린 횟수 제한이 없다. 장난으로 남을 잠그는 일을 막으려고 뺐고, 문제가 생기면 교사 화면 잠금과 함께 보완한다.
+async function auth(d, env, allowCreate) {
   const studentNo = clean(d.student_no, 10);
+  const pw = typeof d.password === 'string' ? d.password : '';
+  if (!/^\d{3,6}$/.test(studentNo)) return { err: json({ error: '학번을 숫자로 적어 주세요.' }, 400) };
+  if (pw.length < 4 || pw.length > 20) return { err: json({ error: '비밀번호는 4~20자로 정해 주세요.' }, 400) };
+  const st = await env.DB.prepare('SELECT student_no, name, salt, hash FROM students WHERE student_no = ?').bind(studentNo).first();
+  if (st) {
+    if ((await hashPw(st.salt, pw)) !== st.hash)
+      return { err: json({ error: '비밀번호가 다릅니다. 이 학번으로 처음 정한 비밀번호를 넣어 주세요.' }, 403) };
+    return { st };
+  }
+  if (!allowCreate) return { err: json({ error: '처음 화면에서 학번과 비밀번호를 다시 넣어 주세요.' }, 403) };
   const name = clean(d.name, 20);
+  if (!name) return { err: json({ error: '처음이면 이름도 적어 주세요.' }, 400) };
+  const salt = crypto.randomUUID();
+  await env.DB.prepare('INSERT INTO students (student_no, name, salt, hash, created_at) VALUES (?, ?, ?, ?, ?)')
+    .bind(studentNo, name, salt, await hashPw(salt, pw), new Date().toISOString())
+    .run();
+  return { st: { student_no: studentNo, name } };
+}
+
+// 들어오기: 맞으면 내가 낸 것들을 돌려준다 (어느 기기에서든 같은 학번·비밀번호로 확인)
+async function login(req, env) {
+  const d = await readJson(req);
+  if (!d) return json({ error: '잘못된 요청입니다.' }, 400);
+  const { st, err } = await auth(d, env, true);
+  if (err) return err;
+  // 이름을 잘못 적었으면 비밀번호가 맞을 때 고쳐 준다
+  const name = clean(d.name, 20);
+  if (name && name !== st.name) {
+    st.name = name;
+    await env.DB.prepare('UPDATE students SET name = ? WHERE student_no = ?').bind(name, st.student_no).run();
+    await env.DB.prepare('UPDATE submissions SET name = ? WHERE student_no = ?').bind(name, st.student_no).run();
+  }
+  const { results } = await env.DB.prepare(
+    `SELECT s.kind, s.team, s.role, s.body, s.file_name, s.created_at,
+            s.file_chunks > 0 AND s.file_chunks = (SELECT COUNT(*) FROM file_chunks c WHERE c.sub_id = s.id) AS file_ok
+     FROM submissions s WHERE s.student_no = ?`
+  ).bind(st.student_no).all();
+  return json({ ok: true, name: st.name, items: results });
+}
+
+// 제출: 같은 학생의 같은 종류는 한 줄만 두고, 다시 내면 그 줄을 고친다
+async function submit(req, env) {
+  const d = await readJson(req);
+  if (!d) return json({ error: '잘못된 요청입니다.' }, 400);
+  const { st, err } = await auth(d, env, false);
+  if (err) return err;
+  const kind = clean(d.kind, 20);
   const team = clean(d.team, 200);
   const role = clean(d.role, 10);
   const body = clean(d.body, 6000);
 
   if (!KINDS[kind]) return json({ error: '제출 종류를 다시 골라 주세요.' }, 400);
-  if (!/^\d{3,6}$/.test(studentNo)) return json({ error: '학번을 숫자로 적어 주세요.' }, 400);
-  if (!name) return json({ error: '이름을 적어 주세요.' }, 400);
   if (kind === 'helper' && !ROLES.includes(role)) return json({ error: '도우미 분야를 골라 주세요.' }, 400);
-
+  if (kind !== 'helper' && !body) return json({ error: '내용을 적어 주세요.' }, 400);
   const rule = FILE_RULE[kind];
-  let fileName = '', fileSize = 0, fileChunks = 0;
-  if (rule && d.file_name) {
+  // 잘라서 저장하면 학생 글이 말없이 사라지므로 길면 돌려보낸다
+  if (rule && body.length > SHORT_BODY) return json({ error: `설명은 ${SHORT_BODY}자 이내로 간단히 적어 주세요.` }, 400);
+
+  const old = await env.DB.prepare(
+    `SELECT s.id, s.file_name, s.file_size, s.file_chunks,
+            s.file_chunks > 0 AND s.file_chunks = (SELECT COUNT(*) FROM file_chunks c WHERE c.sub_id = s.id) AS file_ok
+     FROM submissions s WHERE s.student_no = ? AND s.kind = ?`
+  ).bind(st.student_no, kind).first();
+
+  // 새 파일을 고르지 않았으면 전에 올린 파일을 그대로 둔다
+  let fileName = old ? old.file_name : '', fileSize = old ? old.file_size : 0, fileChunks = old ? old.file_chunks : 0;
+  const newFile = Boolean(rule && d.file_name);
+  if (newFile) {
     fileName = clean(d.file_name, 100);
     fileSize = Number(d.file_size);
     if (!rule.ext.test(fileName)) return json({ error: rule.msg }, 400);
@@ -79,19 +143,28 @@ async function submit(req, env) {
       return json({ error: '파일은 10MB 이하만 올릴 수 있습니다.' }, 400);
     fileChunks = Math.ceil(fileSize / CHUNK_BYTES);
   }
-  if (kind !== 'helper' && !body) return json({ error: '내용을 적어 주세요.' }, 400);
-  // 잘라서 저장하면 학생 글이 말없이 사라지므로 길면 돌려보낸다
-  if (rule && body.length > SHORT_BODY) return json({ error: `설명은 ${SHORT_BODY}자 이내로 간단히 적어 주세요.` }, 400);
-  if (kind === 'gobaek' && !fileName) return json({ error: '대본 또는 각색안 파일(한글 또는 텍스트)을 올려 주세요.' }, 400);
+  if (kind === 'gobaek' && !newFile && !(old && old.file_ok))
+    return json({ error: '대본 또는 각색안 파일(한글 또는 텍스트)을 올려 주세요.' }, 400);
 
   const token = crypto.randomUUID();
-  const row = await env.DB.prepare(
-    `INSERT INTO submissions (kind, student_no, name, team, role, body, file_name, file_size, file_chunks, token, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
-  )
-    .bind(kind, studentNo, name, team, kind === 'helper' ? role : '', body, fileName, fileSize, fileChunks, token, new Date().toISOString())
-    .first();
-  return json({ ok: true, id: row.id, token, chunks: fileChunks });
+  const now = new Date().toISOString();
+  const r = kind === 'helper' ? role : '';
+  let id;
+  if (old) {
+    id = old.id;
+    await env.DB.prepare(
+      'UPDATE submissions SET name = ?, team = ?, role = ?, body = ?, file_name = ?, file_size = ?, file_chunks = ?, token = ?, created_at = ? WHERE id = ?'
+    ).bind(st.name, team, r, body, fileName, fileSize, fileChunks, token, now, id).run();
+    // 최소구현: 새 파일을 올리다 끊기면 전 파일도 없어진다. 교사 화면에 '끊김'으로 보이고 학생에게 다시 올리라고 안내한다.
+    if (newFile) await env.DB.prepare('DELETE FROM file_chunks WHERE sub_id = ?').bind(id).run();
+  } else {
+    const row = await env.DB.prepare(
+      `INSERT INTO submissions (kind, student_no, name, team, role, body, file_name, file_size, file_chunks, token, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
+    ).bind(kind, st.student_no, st.name, team, r, body, fileName, fileSize, fileChunks, token, now).first();
+    id = row.id;
+  }
+  return json({ ok: true, id, token, chunks: newFile ? fileChunks : 0 });
 }
 
 async function saveChunk(req, url, env) {
@@ -148,7 +221,7 @@ async function teacherPage(env) {
         .join('');
       const third = kind === 'helper' ? '분야' : '팀원';
       return `<h2>${title} <small>${rows.length}건</small></h2>
-<table><thead><tr><th>제출 시각</th><th>학번</th><th>이름</th><th>${third}</th><th>내용</th></tr></thead><tbody>${trs || '<tr><td colspan="5">아직 없습니다.</td></tr>'}</tbody></table>`;
+<table><thead><tr><th>마지막 제출</th><th>학번</th><th>이름</th><th>${third}</th><th>내용</th></tr></thead><tbody>${trs || '<tr><td colspan="5">아직 없습니다.</td></tr>'}</tbody></table>`;
     })
     .join('');
 

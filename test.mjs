@@ -51,7 +51,9 @@ assert.equal((await submit({ kind: 'bognar' })).status, 400);
 assert.equal((await submit({ kind: 'bognar', file_name: 'a.pptx', file_size: 10 })).status, 400);
 assert.equal((await submit({ kind: 'bognar', body: '설명', file_name: 'a.exe', file_size: 10 })).status, 400);
 assert.equal((await submit({ kind: 'bognar', body: '설명', file_name: 'a.pptx', file_size: 11 * 1024 * 1024 })).status, 400);
-assert.equal((await submit({ kind: 'bognar', body: '가'.repeat(301) })).status, 400);
+assert.equal((await submit({ kind: 'bognar', body: '가'.repeat(301), file_name: 'a.pptx', file_size: 10 })).status, 400);
+// 보그나르는 설명만으로는 안 되고 PPT 초안이 꼭 있어야 한다
+assert.equal((await submit({ kind: 'bognar', body: '설명만' })).status, 400);
 assert.equal((await submit({ kind: 'gobaek', body: '줄거리' })).status, 400);
 assert.equal((await submit({ kind: 'gobaek', body: '줄거리', file_name: 'a.pptx', file_size: 10 })).status, 400);
 assert.equal((await (await submit({ kind: 'question', body: '질문', file_name: 'a.hwp', file_size: 10 })).json()).chunks, 0);

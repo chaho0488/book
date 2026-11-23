@@ -11,8 +11,8 @@ const KINDS = {
 const ROLES = ['사회자', '손재주', '미적감각'];
 // 파일을 받는 종류와 허용 확장자
 const FILE_RULE = {
-  bognar: { ext: /\.(pptx?|pdf)$/i, msg: 'PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.' },
-  gobaek: { ext: /\.(hwpx?|txt)$/i, msg: '한글 파일(.hwp, .hwpx) 또는 텍스트 파일(.txt)만 올릴 수 있습니다.' },
+  bognar: { ext: /\.(pptx?|pdf)$/i, msg: 'PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.', need: 'PPT 초안 파일을 올려 주세요.' },
+  gobaek: { ext: /\.(hwpx?|txt)$/i, msg: '한글 파일(.hwp, .hwpx) 또는 텍스트 파일(.txt)만 올릴 수 있습니다.', need: '공연 대본(시나리오) 파일을 올려 주세요.' },
 };
 // 보그나르 설명과 고백은 줄거리는 간단히만 받는다
 const SHORT_BODY = 300;
@@ -143,8 +143,8 @@ async function submit(req, env) {
       return json({ error: '파일은 10MB 이하만 올릴 수 있습니다.' }, 400);
     fileChunks = Math.ceil(fileSize / CHUNK_BYTES);
   }
-  if (kind === 'gobaek' && !newFile && !(old && old.file_ok))
-    return json({ error: '대본 또는 각색안 파일(한글 또는 텍스트)을 올려 주세요.' }, 400);
+  // 보그나르 PPT, 고백은 대본은 꼭 있어야 한다 (전에 올린 파일이 온전하면 글만 고칠 수 있음)
+  if (rule && !newFile && !(old && old.file_ok)) return json({ error: rule.need }, 400);
 
   const token = crypto.randomUUID();
   const now = new Date().toISOString();

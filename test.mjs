@@ -105,6 +105,18 @@ assert.equal((await call(`/api/chunk?id=${g.id}&seq=0&token=${g.token}`, { metho
 assert.equal((await call(`/api/chunk?id=${g2.id}&seq=0&token=${g2.token}`, { method: 'POST', body: 'AAAA' })).status, 200);
 assert.equal((await submit({ kind: 'gobaek', body: '줄거리2' })).status, 200);
 
+// 9-1. 고백은 대본은 파일 없이 붙여넣은 글로도 낼 수 있고, 다시 들어오면 그 글이 보인다
+const C = { student_no: '3101', password: 'pass1' };
+await login({ ...C, name: '박대본' });
+assert.equal((await post('/api/submit', { ...C, kind: 'gobaek', body: '줄거리' })).status, 400);
+assert.equal((await post('/api/submit', { ...C, kind: 'gobaek', body: '줄거리', script: '가'.repeat(15001) })).status, 400);
+assert.equal((await post('/api/submit', { ...C, kind: 'gobaek', body: '줄거리', script: '철수: <안녕>' })).status, 200);
+assert.equal((await mine(C)).gobaek.script, '철수: <안녕>');
+assert.ok((await (await call('/t/testkey1')).text()).includes('[공연 대본]\n철수: &lt;안녕&gt;'));
+// 다른 종류에 대본을 보내도 저장하지 않는다
+await post('/api/submit', { ...C, kind: 'gray', body: '글', script: '몰래' });
+assert.equal((await mine(C)).gray.script, '');
+
 // 10. 다른 학생은 자기 것만 본다. 이름을 고치면 낸 글의 이름도 바뀐다
 const B = { student_no: '2101', password: 'abcd' };
 assert.equal((await login({ ...B, name: '김철수' })).status, 200);

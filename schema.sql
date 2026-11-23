@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS submissions (
   team TEXT NOT NULL DEFAULT '',
   role TEXT NOT NULL DEFAULT '',
   body TEXT NOT NULL DEFAULT '',
+  script TEXT NOT NULL DEFAULT '', -- 고백은: 붙여넣은 공연 대본
   file_name TEXT NOT NULL DEFAULT '',
   file_size INTEGER NOT NULL DEFAULT 0,
   file_chunks INTEGER NOT NULL DEFAULT 0,

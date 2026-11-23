@@ -12,10 +12,12 @@ const ROLES = ['사회자', '손재주', '미적감각'];
 // 파일을 받는 종류와 허용 확장자
 const FILE_RULE = {
   bognar: { ext: /\.(pptx?|pdf)$/i, msg: 'PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.', need: 'PPT 초안 파일을 올려 주세요.' },
-  gobaek: { ext: /\.(hwpx?|txt)$/i, msg: '한글 파일(.hwp, .hwpx) 또는 텍스트 파일(.txt)만 올릴 수 있습니다.', need: '공연 대본(시나리오) 파일을 올려 주세요.' },
+  gobaek: { ext: /\.(hwpx?|txt)$/i, msg: '한글 파일(.hwp, .hwpx) 또는 텍스트 파일(.txt)만 올릴 수 있습니다.', need: '공연 대본을 붙여넣거나 한글 파일로 올려 주세요.' },
 };
 // 보그나르 설명과 고백은 줄거리는 간단히만 받는다
 const SHORT_BODY = 300;
+// 붙여넣는 공연 대본 글자 수 한도 (더 길면 한글 파일로)
+const MAX_SCRIPT = 15000;
 const MAX_FILE = 10 * 1024 * 1024;
 // 최소구현: R2가 꺼져 있어 파일을 D1에 조각으로 저장한다. 조각 크기는 public/index.html과 같아야 한다.
 const CHUNK_BYTES = 720000;
@@ -56,7 +58,7 @@ async function hashPw(salt, pw) {
 }
 
 async function readJson(req) {
-  if (Number(req.headers.get('content-length') || 0) > 50000) return null;
+  if (Number(req.headers.get('content-length') || 0) > 120000) return null;
   try {
     return JSON.parse(await req.text());
   } catch {
@@ -101,7 +103,7 @@ async function login(req, env) {
     await env.DB.prepare('UPDATE submissions SET name = ? WHERE student_no = ?').bind(name, st.student_no).run();
   }
   const { results } = await env.DB.prepare(
-    `SELECT s.kind, s.team, s.role, s.body, s.file_name, s.created_at,
+    `SELECT s.kind, s.team, s.role, s.body, s.script, s.file_name, s.created_at,
             s.file_chunks > 0 AND s.file_chunks = (SELECT COUNT(*) FROM file_chunks c WHERE c.sub_id = s.id) AS file_ok
      FROM submissions s WHERE s.student_no = ?`
   ).bind(st.student_no).all();
@@ -118,6 +120,9 @@ async function submit(req, env) {
   const team = clean(d.team, 200);
   const role = clean(d.role, 10);
   const body = clean(d.body, 6000);
+  // 대본은 고백은만 받는다. 한도보다 한 글자 더 읽어 넘쳤는지 확인한다
+  const script = kind === 'gobaek' ? clean(d.script, MAX_SCRIPT + 1) : '';
+  if (script.length > MAX_SCRIPT) return json({ error: '대본이 너무 깁니다. 15,000자 이내로 줄이거나 한글 파일로 올려 주세요.' }, 400);
 
   if (!KINDS[kind]) return json({ error: '제출 종류를 다시 골라 주세요.' }, 400);
   if (kind === 'helper' && !ROLES.includes(role)) return json({ error: '도우미 분야를 골라 주세요.' }, 400);
@@ -143,8 +148,8 @@ async function submit(req, env) {
       return json({ error: '파일은 10MB 이하만 올릴 수 있습니다.' }, 400);
     fileChunks = Math.ceil(fileSize / CHUNK_BYTES);
   }
-  // 보그나르 PPT, 고백은 대본은 꼭 있어야 한다 (전에 올린 파일이 온전하면 글만 고칠 수 있음)
-  if (rule && !newFile && !(old && old.file_ok)) return json({ error: rule.need }, 400);
+  // 보그나르 PPT, 고백은 대본은 꼭 있어야 한다 (전에 올린 파일이 온전하면 글만 고칠 수 있음). 고백은 대본은 붙여넣은 글이어도 된다
+  if (rule && !newFile && !(old && old.file_ok) && !script) return json({ error: rule.need }, 400);
 
   const token = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -153,15 +158,15 @@ async function submit(req, env) {
   if (old) {
     id = old.id;
     await env.DB.prepare(
-      'UPDATE submissions SET name = ?, team = ?, role = ?, body = ?, file_name = ?, file_size = ?, file_chunks = ?, token = ?, created_at = ? WHERE id = ?'
-    ).bind(st.name, team, r, body, fileName, fileSize, fileChunks, token, now, id).run();
+      'UPDATE submissions SET name = ?, team = ?, role = ?, body = ?, script = ?, file_name = ?, file_size = ?, file_chunks = ?, token = ?, created_at = ? WHERE id = ?'
+    ).bind(st.name, team, r, body, script, fileName, fileSize, fileChunks, token, now, id).run();
     // 최소구현: 새 파일을 올리다 끊기면 전 파일도 없어진다. 교사 화면에 '끊김'으로 보이고 학생에게 다시 올리라고 안내한다.
     if (newFile) await env.DB.prepare('DELETE FROM file_chunks WHERE sub_id = ?').bind(id).run();
   } else {
     const row = await env.DB.prepare(
-      `INSERT INTO submissions (kind, student_no, name, team, role, body, file_name, file_size, file_chunks, token, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
-    ).bind(kind, st.student_no, st.name, team, r, body, fileName, fileSize, fileChunks, token, now).first();
+      `INSERT INTO submissions (kind, student_no, name, team, role, body, script, file_name, file_size, file_chunks, token, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
+    ).bind(kind, st.student_no, st.name, team, r, body, script, fileName, fileSize, fileChunks, token, now).first();
     id = row.id;
   }
   return json({ ok: true, id, token, chunks: newFile ? fileChunks : 0 });
@@ -199,7 +204,7 @@ const kst = (iso) => {
 
 async function teacherPage(env) {
   const { results } = await env.DB.prepare(
-    `SELECT s.id, s.kind, s.student_no, s.name, s.team, s.role, s.body, s.file_name, s.file_chunks, s.created_at,
+    `SELECT s.id, s.kind, s.student_no, s.name, s.team, s.role, s.body, s.script, s.file_name, s.file_chunks, s.created_at,
             (SELECT COUNT(*) FROM file_chunks c WHERE c.sub_id = s.id) AS saved
      FROM submissions s ORDER BY s.id DESC`
   ).all();
@@ -216,7 +221,7 @@ async function teacherPage(env) {
                 ? `<button type="button" data-id="${r.id}" data-n="${r.file_chunks}" data-name="${esc(r.file_name)}">${esc(r.file_name)} 내려받기</button>`
                 : `<em>${esc(r.file_name)} (올리다 끊김, 다시 제출 필요)</em>`;
           }
-          return `<tr><td>${kst(r.created_at)}</td><td>${esc(r.student_no)}</td><td>${esc(r.name)}</td><td>${esc(r.team || r.role)}</td><td class="body">${esc(r.body)}${file ? `<div>${file}</div>` : ''}</td></tr>`;
+          return `<tr><td>${kst(r.created_at)}</td><td>${esc(r.student_no)}</td><td>${esc(r.name)}</td><td>${esc(r.team || r.role)}</td><td class="body">${esc(r.body)}${r.script ? `\n\n[공연 대본]\n${esc(r.script)}` : ''}${file ? `<div>${file}</div>` : ''}</td></tr>`;
         })
         .join('');
       const third = kind === 'helper' ? '분야' : '팀원';

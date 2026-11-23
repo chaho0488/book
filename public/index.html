@@ -65,7 +65,7 @@ textarea{min-height:160px;resize:vertical}
 <div id="menu" class="menu">
 <button type="button" data-kind="gray"><b><span class="tag g">작품 1</span>회색 인간<i class="state"></i></b><span>떠오른 생각을 5줄 내외로 자유롭게</span></button>
 <button type="button" data-kind="bognar"><b><span class="tag b">작품 2</span>보그나르 주식회사<i class="state"></i></b><span>미래 제품 기획 · PPT 초안(5장 이내)과 간단한 설명 제출</span></button>
-<button type="button" data-kind="gobaek"><b><span class="tag p">작품 3</span>고백은 이미 본 장면<i class="state"></i></b><span>무대에서 공연할 대본(시나리오)을 한글·텍스트 파일로 제출</span></button>
+<button type="button" data-kind="gobaek"><b><span class="tag p">작품 3</span>고백은 이미 본 장면<i class="state"></i></b><span>무대에서 공연할 대본(시나리오) 제출 · 붙여넣기 또는 한글 파일</span></button>
 <button type="button" data-kind="helper"><b>재능기부 도우미 신청<i class="state"></i></b><span>사회자 · 손재주 · 미적감각 (상점 부여 예정)</span></button>
 <button type="button" data-kind="question"><b>작가님께 궁금한 점<i class="state"></i></b><span>작가님께 묻고 싶은 것을 보내 주세요</span></button>
 </div>
@@ -79,6 +79,7 @@ textarea{min-height:160px;resize:vertical}
 <label id="teamBox">팀원 <span class="hint">함께한 친구의 학번과 이름 (혼자면 비워 두세요)</span><input name="team" maxlength="200" placeholder="예) 1203 홍길동, 1215 김철수"></label>
 <label id="roleBox">분야<select name="role"><option value="">고르세요</option><option>사회자</option><option>손재주</option><option>미적감각</option></select></label>
 <label id="bodyBox"><span id="bodyLabel">내용</span><textarea name="body" maxlength="6000"></textarea></label>
+<label id="scriptBox">공연 대본(시나리오) 붙여넣기 <span class="hint">휴대폰 메모 등에서 쓴 내용을 복사해 여기에 붙여넣으세요 (15,000자 이내)</span><textarea name="script" maxlength="15000"></textarea></label>
 <label id="fileBox"><span id="fileLabel">파일</span> <span class="hint" id="fileHint"></span><span class="hint" id="fileNow"></span><input name="file" type="file"></label>
 <button class="send" id="send">제출하기</button>
 <p id="msg" class="msg" role="status" aria-live="polite"></p>
@@ -89,11 +90,11 @@ textarea{min-height:160px;resize:vertical}
 <script>
 // 종류별 화면 설정: 제목, 안내, 내용 칸 이름, 보여 줄 칸
 const KINDS = {
-  gray: { title: '회색 인간', guide: '작품을 읽고 떠오른 생각을 5줄 내외로 자유롭게 써 보세요. 막막하다면 이런 질문에서 시작해도 좋습니다: 나를 회색으로 만드는 것은? · 마지막 장면 다음 이야기는? 제출한 작품은 행사 당일 전시됩니다.', body: '나의 글', show: ['body'] },
+  gray: { title: '회색 인간', guide: '작품을 읽고 떠오른 생각을 5줄 내외로 자유롭게 써 보세요. 막막하다면 이런 질문에서 시작해도 좋습니다: 나를 회색으로 만드는 것은? · 마지막 장면 다음 이야기는? 선정된 작품은 행사 당일 전시됩니다.', body: '나의 글', show: ['body'] },
   bognar: { title: '보그나르 주식회사', guide: '소설 속 기술을 참고해 새로운 미래 제품을 기획해 보세요. PPT 초안(5장 이내)을 꼭 올리고, 제품 설명을 간단히 적어 주세요. 이왕이면 본인의 전공 지식을 활용하면 더 좋습니다. 우수 팀은 행사 당일 무대에서 발표합니다.', body: '제품 설명 (간단하게, 300자 이내)', short: true, show: ['team', 'body', 'file'],
     file: { label: 'PPT 초안 (꼭 올려 주세요)', hint: '5장 이내 · .ppt .pptx .pdf · 10MB 이하', accept: '.ppt,.pptx,.pdf', ext: /\.(pptx?|pdf)$/i, msg: 'PPT(.ppt, .pptx) 또는 PDF 파일만 올릴 수 있습니다.', need: 'PPT 초안 파일을 올려 주세요.' } },
-  gobaek: { title: '고백은 이미 본 장면', guide: '책 속 이야기를 바탕으로, 행사 당일 무대에서 공연할 짧은 연극 한 장면의 대본(시나리오)을 한글 파일 또는 텍스트 파일로 올려 주세요. 아래 칸에는 줄거리만 간단히 적습니다. 우수 팀은 행사 당일 무대에서 공연합니다.', body: '줄거리 (간단하게, 300자 이내)', short: true, show: ['team', 'body', 'file'],
-    file: { label: '공연 대본(시나리오) (한글 또는 텍스트 파일)', hint: '.hwp .hwpx .txt · 10MB 이하', accept: '.hwp,.hwpx,.txt', ext: /\.(hwpx?|txt)$/i, msg: '한글 파일(.hwp, .hwpx) 또는 텍스트 파일(.txt)만 올릴 수 있습니다.', need: '공연 대본(시나리오) 파일을 올려 주세요.' } },
+  gobaek: { title: '고백은 이미 본 장면', guide: '책 속 이야기를 바탕으로, 행사 당일 무대에서 공연할 짧은 연극 한 장면의 대본(시나리오)을 내 주세요. 휴대폰 메모 등에서 쓴 내용을 복사해 붙여넣거나, 한글 파일로 올리면 됩니다. 줄거리는 간단히만 적습니다. 우수 팀은 행사 당일 무대에서 공연합니다.', body: '줄거리 (간단하게, 300자 이내)', short: true, show: ['team', 'body', 'script', 'file'],
+    file: { label: '또는 한글 파일로 올리기', hint: '.hwp .hwpx · 10MB 이하', accept: '.hwp,.hwpx,.txt', ext: /\.(hwpx?|txt)$/i, msg: '한글 파일(.hwp, .hwpx) 또는 텍스트 파일(.txt)만 올릴 수 있습니다.', need: '공연 대본을 붙여넣거나 한글 파일로 올려 주세요.' } },
   helper: { title: '재능기부 도우미 신청', guide: '사회자: 재치 있는 언변으로 행사를 이끌어 갈 학생 / 손재주: 글씨를 바르게 쓰고 만들기를 잘하는 학생 / 미적감각: 디자인, 꾸미기 감각이 뛰어난 학생', body: '한 줄 소개 (선택)', show: ['role', 'body'] },
   question: { title: '작가님께 궁금한 점', guide: '김동식 작가님께 궁금한 점을 보내 주세요.', body: '질문', show: ['body'] },
 };
@@ -166,6 +167,7 @@ $('menu').addEventListener('click', (e) => {
   form.team.value = it ? it.team : '';
   form.role.value = it ? it.role : '';
   form.body.value = it ? it.body : '';
+  form.script.value = it ? it.script : '';
   form.file.value = '';
   $('title').textContent = k.title;
   $('guide').textContent = k.guide;
@@ -177,7 +179,7 @@ $('menu').addEventListener('click', (e) => {
     form.file.accept = k.file.accept;
     $('fileNow').textContent = !it || !it.file_name ? '' : it.file_ok ? '올린 파일: ' + it.file_name + ' (바꾸려면 새 파일을 고르세요)' : it.file_name + ' 파일이 올라가다 끊겼습니다. 다시 골라 주세요.';
   }
-  for (const f of ['team', 'role', 'body', 'file']) $(f + 'Box').hidden = !k.show.includes(f);
+  for (const f of ['team', 'role', 'body', 'script', 'file']) $(f + 'Box').hidden = !k.show.includes(f);
   $('send').textContent = it ? '고친 내용 제출하기' : '제출하기';
   setMsg('msg', '');
   show('form');
@@ -196,11 +198,11 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const rule = KINDS[kind].file, it = items[kind];
   const file = rule ? form.file.files[0] : null;
-  const data = { ...me, kind, team: form.team.value.trim(), role: form.role.value, body: form.body.value.trim() };
+  const data = { ...me, kind, team: form.team.value.trim(), role: form.role.value, body: form.body.value.trim(), script: kind === 'gobaek' ? form.script.value.trim() : '' };
   // 서버에서도 똑같이 검사하지만, 보내기 전에 먼저 알려 준다
   if (kind === 'helper' && !data.role) return setMsg('msg', '도우미 분야를 골라 주세요.', true);
   if (kind !== 'helper' && !data.body) return setMsg('msg', '내용을 적어 주세요.', true);
-  if (rule && !file && !(it && it.file_ok)) return setMsg('msg', rule.need, true);
+  if (rule && !file && !(it && it.file_ok) && !data.script) return setMsg('msg', rule.need, true);
   if (file) {
     if (!rule.ext.test(file.name)) return setMsg('msg', rule.msg, true);
     if (file.size > MAX_FILE) return setMsg('msg', '파일은 10MB 이하만 올릴 수 있습니다.', true);
